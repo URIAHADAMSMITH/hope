@@ -1,121 +1,48 @@
-# Earth - Direct Democracy Platform
+# Hello website!
 
-A comprehensive platform for global democratic participation, enabling people worldwide to engage in discussions, vote on important issues, and track global sentiment in real-time.
+This is a basic HTML starter project you can build on however you like. No need to save. While you develop your site, your changes will happen ✨ immediately in the preview window. On the left you'll see the files that make up your site, including HTML, JavaScript, and CSS. You can upload assets like images or audio in `assets`. The rest is up to you and your imagination. 🦄
 
-## Features
+_Last updated: 28 Feb 2023_
 
-- **Interactive World Map**: Visualize and participate in global issues with an intuitive map interface
-- **Location-Based Polls**: View and participate in polls specific to your region
-- **Forums**: Engage in meaningful discussions across various categories
-- **Real-time Analytics**: Track participation and monitor global trends
-- **User Authentication**: Secure account creation and management
-- **Poll Creation**: Create and participate in polls on global issues
-- **Mobile Responsive**: Fully responsive design for all devices
+## What's in this project?
 
-## Technology Stack
+← `README.md`: That's this file, where you can tell people what your cool website does and how you built it.
 
-- Frontend: HTML5, CSS3, JavaScript
-- Map Integration: Mapbox GL JS
-- Authentication & Backend: Supabase
-- Data Visualization: Chart.js
-- Icons: Font Awesome
+← `index.html`: This is the main web page for your site. The HTML defines the structure and content of the page using _elements_. You'll see references in the HTML to the JS and CSS files. Try clicking the image in the center of the page!
 
-## Setup
+← `style.css`: CSS files add styling rules to your content. The CSS applies styles to the elements in your HTML page. The style rules also make the image move when you click it.
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/earth.git
-cd earth
-```
+← `script.js`: If you're feeling fancy you can add interactivity to your site with JavaScript. The code in the JavaScript file runs when the page loads, and when the visitor clicks the button you can add using the code in the TODO.
 
-2. Set up environment variables:
-Create a `.env` file with your Supabase and Mapbox credentials:
-```
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_anon_key
-MAPBOX_TOKEN=your_mapbox_token
-```
+Open each file and check out the comments (in gray) for more info.
 
-3. Install dependencies:
-```bash
-npm install
-```
+## Try this next 🏗️
 
-4. Run the development server:
-```bash
-npm start
-```
+Take a look in `TODO.md` for next steps you can try out in your new site!
 
-## Project Structure
+___Want a minimal version of this project to build your own website? Check out [Blank Website](https://glitch.com/edit/#!/remix/glitch-blank-website)!___
+
+## Ready to share your site?
+
+Add these meta tags for SEO and social sharing between your page `<head></head>` tags, changing the values for your site:
 
 ```
-app/
-├── index.html      # Main page with world map
-├── forums.html     # Forums page
-├── analytics.html  # Analytics dashboard
-├── about.html      # About page
-├── style.css       # Global styles
-├── script.js       # Main JavaScript
-├── forums.js       # Forums functionality
-├── analytics.js    # Analytics functionality
-└── about.js        # About page functionality
+<link rel="canonical" href="https://glitch-hello-website.glitch.me/" />
+<meta name="description" content="A simple website, built with Glitch. Remix it to get your own."/>
+<meta name="robots" content="index,follow" />
+<meta property="og:title" content="Hello World!" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://glitch-hello-website.glitch.me/" />
+<meta property="og:description" content="A simple website, built with Glitch. Remix it to get your own."/>
+<meta property="og:image" content="https://cdn.glitch.com/605e2a51-d45f-4d87-a285-9410ad350515%2Fhello-website-social.png?v=1616712748147"/>
+<meta name="twitter:card" content="summary" />
 ```
 
-## Database Schema
+![Glitch](https://cdn.glitch.com/a9975ea6-8949-4bab-addb-8a95021dc2da%2FLogo_Color.svg?v=1602781328576)
 
-### Users
-- id: uuid
-- email: string
-- created_at: timestamp
+## You built this with Glitch!
 
-### Polls
-- id: uuid
-- title: string
-- description: text
-- category: string
-- options: array
-- location_type: string (global, continent, country, state)
-- location_name: string
-- latitude: float
-- longitude: float
-- user_id: uuid (foreign key)
-- created_at: timestamp
-- votes_count: integer
-- comments_count: integer
+[Glitch](https://glitch.com) is a friendly community where millions of people come together to build web apps and websites.
 
-### Votes
-- id: uuid
-- poll_id: uuid (foreign key)
-- user_id: uuid (foreign key)
-- option: string
-- created_at: timestamp
-
-### Comments
-- id: uuid
-- poll_id: uuid (foreign key)
-- user_id: uuid (foreign key)
-- content: text
-- created_at: timestamp
-
-### Tags
-- id: uuid
-- name: string
-- usage_count: integer
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-- Email: contact@earth.world
-- Twitter: [@EarthPlatform](https://twitter.com/EarthPlatform)
-- GitHub: [github.com/EarthPlatform](https://github.com/EarthPlatform) 
+- Need more help? [Check out our Help Center](https://help.glitch.com/) for answers to any common questions.
+- Ready to make it official? [Become a paid Glitch member](https://glitch.com/pricing) to boost your app with private sharing, more storage and memory, domains and more.

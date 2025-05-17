@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+        <title>Forums - Earth</title>    <link rel="stylesheet" href="style.css" />    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">  </head>  <body>    <nav class="top-nav">      <div class="nav-left">        <h1>🌍 Earth</h1>
+        <div class="nav-links">
+          <a href="index.html"><i class="fas fa-globe"></i> World Map</a>
+          <a href="forums.html" class="active"><i class="fas fa-comments"></i> Forums</a>
+          <a href="analytics.html"><i class="fas fa-chart-line"></i> Analytics</a>
+          <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button id="create-thread" class="primary-button"><i class="fas fa-plus"></i> New Thread</button>
+        <div id="auth-buttons">
+          <button id="login-button" class="auth-button">Sign In</button>
+          <button id="register-button" class="auth-button">Register</button>
+        </div>
+        <div id="user-info" class="hidden">
+          <span id="user-name"></span>
+          <button id="logout-button" class="auth-button">Sign Out</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="forums-container">
+      <div class="forums-sidebar">
+        <div class="search-box">
+          <input type="text" placeholder="Search forums...">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="forum-categories">
+          <h3>Categories</h3>
+          <ul>
+            <li class="active"><i class="fas fa-globe-americas"></i> Global Issues</li>
+            <li><i class="fas fa-leaf"></i> Environment</li>
+            <li><i class="fas fa-graduation-cap"></i> Education</li>
+            <li><i class="fas fa-heartbeat"></i> Healthcare</li>
+            <li><i class="fas fa-chart-bar"></i> Economy</li>
+            <li><i class="fas fa-users"></i> Social Issues</li>
+            <li><i class="fas fa-microchip"></i> Technology</li>
+            <li><i class="fas fa-balance-scale"></i> Governance</li>
+          </ul>
+        </div>
+        <div class="trending-tags">
+          <h3>Trending Tags</h3>
+          <div class="tags">
+            <span class="tag">#ClimateAction</span>
+            <span class="tag">#Education</span>
+            <span class="tag">#Democracy</span>
+            <span class="tag">#Innovation</span>
+            <span class="tag">#Sustainability</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="forums-main">
+        <div class="forums-header">
+          <h2>Global Issues</h2>
+          <div class="forums-controls">
+            <select id="forum-sort">
+              <option value="recent">Most Recent</option>
+              <option value="popular">Most Popular</option>
+              <option value="active">Most Active</option>
+            </select>
+            <button class="view-toggle">
+              <i class="fas fa-th-list"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="threads-list">
+          <!-- Threads will be loaded here -->
+        </div>
+      </div>
+
+      <div class="forums-activity">
+        <div class="activity-header">
+          <h3>Recent Activity</h3>
+        </div>
+        <div class="activity-feed">
+          <!-- Activity items will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Thread Modal -->
+    <div id="thread-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Create New Thread</h2>
+        <form id="thread-form">
+          <div class="form-group">
+            <label for="thread-title">Title</label>
+            <input type="text" id="thread-title" required maxlength="200" placeholder="What would you like to discuss?">
+          </div>
+          <div class="form-group">
+            <label for="thread-content">Content</label>
+            <textarea id="thread-content" required maxlength="5000" placeholder="Share your thoughts..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="thread-category">Category</label>
+            <select id="thread-category" required>
+              <option value="global">Global Issues</option>
+              <option value="environment">Environment</option>
+              <option value="education">Education</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="economy">Economy</option>
+              <option value="social">Social Issues</option>
+              <option value="technology">Technology</option>
+              <option value="governance">Governance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="thread-tags">Tags</label>
+            <input type="text" id="thread-tags" placeholder="Add tags separated by commas">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="cancel-button">Cancel</button>
+            <button type="submit" class="submit-button">Create Thread</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2 id="auth-title">Sign In</h2>
+        <form id="auth-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" required>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="cancel-button">Cancel</button>
+            <button type="submit" class="submit-button">Continue</button>
+          </div>
+          <p id="auth-switch">
+            Don't have an account? <a href="#" id="auth-switch-link">Register</a>
+          </p>
+        </form>
+      </div>
+    </div>
+
+    <script src="forums.js"></script>
+  </body>
+</html> 

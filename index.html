@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Global Voice - Direct Democracy Platform</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
+    <!-- Mapbox GL JS -->
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  </head>
+  <body>
+    <nav class="top-nav">
+      <div class="nav-left">
+        <h1>🌍 Global Voice</h1>
+        <span id="current-location">World</span>
+      </div>
+      <div class="nav-center">
+        <button id="zoom-out"><i class="fas fa-globe"></i> World View</button>
+        <button id="create-issue" class="primary-button"><i class="fas fa-plus"></i> New Issue</button>
+      </div>
+      <div class="nav-right">
+        <!-- Auth buttons will be replaced by user info when logged in -->
+        <div id="auth-buttons">
+          <button id="login-button" class="auth-button">Sign In</button>
+          <button id="register-button" class="auth-button">Register</button>
+        </div>
+        <div id="user-info" class="hidden">
+          <span id="user-name"></span>
+          <button id="logout-button" class="auth-button">Sign Out</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-container">
+      <div id="map"></div>
+      
+      <div class="side-panel">
+        <div class="panel-header">
+          <h2>Current Issues</h2>
+          <button id="create-poll" class="primary-button">
+            <i class="fas fa-plus"></i> Create Poll
+          </button>
+        </div>
+        
+        <!-- Loading Placeholder -->
+        <div id="loading-placeholder" class="hidden">
+          <div class="poll-item loading">
+            <div class="poll-header"></div>
+            <h3></h3>
+            <p></p>
+          </div>
+          <div class="poll-item loading">
+            <div class="poll-header"></div>
+            <h3></h3>
+            <p></p>
+          </div>
+          <div class="poll-item loading">
+            <div class="poll-header"></div>
+            <h3></h3>
+            <p></p>
+          </div>
+        </div>
+        
+        <!-- Issues List -->
+        <div id="issues-list"></div>
+        
+        <!-- Pagination -->
+        <div id="pagination" class="pagination"></div>
+      </div>
+    </div>
+
+    <!-- Modal for creating new issues -->
+    <div id="issue-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Create New Issue</h2>
+        <form id="issue-form">
+          <div class="form-group">
+            <label for="issue-title">Title</label>
+            <input type="text" id="issue-title" required maxlength="100">
+          </div>
+          <div class="form-group">
+            <label for="issue-description">Description</label>
+            <textarea id="issue-description" required maxlength="2000"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="issue-category">Category</label>
+            <select id="issue-category" required>
+              <option value="environment">Environment</option>
+              <option value="education">Education</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="economy">Economy</option>
+              <option value="social">Social Issues</option>
+              <option value="technology">Technology</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="cancel-button">Cancel</button>
+            <button type="submit" class="submit-button">Create Issue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Auth modal -->
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2 id="auth-title">Sign In</h2>
+        <form id="auth-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" required>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="cancel-button">Cancel</button>
+            <button type="submit" class="submit-button">Continue</button>
+          </div>
+          <p id="auth-switch">
+            Don't have an account? <a href="#" id="auth-switch-link">Register</a>
+          </p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader">
+      <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Create Poll Modal -->
+    <div id="create-poll-modal" class="modal">
+      <div class="modal-content">
+        <h2>Create New Poll</h2>
+        <form id="poll-form" novalidate>
+          <div class="form-group">
+            <label for="poll-title">Title</label>
+            <input 
+              type="text" 
+              id="poll-title" 
+              required 
+              maxlength="200"
+              placeholder="What would you like to discuss?"
+            >
+            <div class="validation-message"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="poll-description">Description</label>
+            <textarea 
+              id="poll-description" 
+              required 
+              maxlength="2000"
+              placeholder="Provide more details about the issue..."
+            ></textarea>
+            <div class="validation-message"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="poll-category">Category</label>
+            <select id="poll-category" required>
+              <option value="">Select a category</option>
+              <option value="environment">Environment</option>
+              <option value="economy">Economy</option>
+              <option value="education">Education</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="social">Social Issues</option>
+              <option value="technology">Technology</option>
+              <option value="governance">Governance</option>
+            </select>
+            <div class="validation-message"></div>
+          </div>
+          
+          <div class="form-group">
+            <label>Options</label>
+            <div id="poll-options">
+              <div class="option-input">
+                <input type="text" placeholder="Option 1" required>
+                <button type="button" class="remove-option" disabled>
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <div class="option-input">
+                <input type="text" placeholder="Option 2" required>
+                <button type="button" class="remove-option" disabled>
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            <button type="button" id="add-option" class="secondary-button">
+              <i class="fas fa-plus"></i> Add Option
+            </button>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="cancel-button">Cancel</button>
+            <button type="submit" class="submit-button">
+              Create Poll
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
