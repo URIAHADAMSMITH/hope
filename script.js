@@ -307,117 +307,38 @@ async function loadUserProfile() {
 
 function updateAuthUI(isAuthenticated) {
   const authSection = document.getElementById('auth-section');
-  const profileSection = document.getElementById('profile-section');
-  const createIssueButton = document.getElementById('create-issue');
-
+  
   if (isAuthenticated) {
     authSection.innerHTML = `
       <div class="user-menu">
         <button id="profile-button" class="profile-button">
-          <img src="${currentUser.user_metadata.avatar_url || '/default-avatar.png'}" alt="Profile" class="avatar">
+          <i class="fas fa-user"></i>
           <span>${currentUser.email}</span>
         </button>
-        <div class="dropdown-menu hidden">
-          <a href="#" id="view-profile">View Profile</a>
-          <a href="#" id="edit-profile">Edit Profile</a>
-          <a href="#" id="my-issues">My Issues</a>
-          <a href="#" id="settings">Settings</a>
-          <a href="#" id="sign-out">Sign Out</a>
-        </div>
+        <button id="sign-out" class="auth-button">Sign Out</button>
       </div>
     `;
 
-    // Show create issue button
-    if (createIssueButton) {
-      createIssueButton.classList.remove('hidden');
-    }
-
-    // Add event listeners
-    setupAuthenticatedUI();
+    // Add sign out handler
+    document.getElementById('sign-out').addEventListener('click', async () => {
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        showToast('Successfully signed out', 'success');
+      } catch (error) {
+        console.error('Error signing out:', error);
+        showToast('Error signing out', 'error');
+      }
+    });
   } else {
     authSection.innerHTML = `
       <button id="sign-in" class="auth-button">Sign In</button>
       <button id="sign-up" class="auth-button">Sign Up</button>
     `;
 
-    // Hide create issue button
-    if (createIssueButton) {
-      createIssueButton.classList.add('hidden');
-    }
-
-    // Add event listeners
-    setupUnauthenticatedUI();
-  }
-}
-
-function setupAuthenticatedUI() {
-  const profileButton = document.getElementById('profile-button');
-  const dropdownMenu = document.querySelector('.dropdown-menu');
-  const signOutButton = document.getElementById('sign-out');
-
-  // Toggle dropdown
-  if (profileButton) {
-    profileButton.addEventListener('click', () => {
-      dropdownMenu.classList.toggle('hidden');
-    });
-  }
-
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.user-menu')) {
-      dropdownMenu.classList.add('hidden');
-    }
-  });
-
-  // Handle sign out
-  if (signOutButton) {
-    signOutButton.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error signing out:', error);
-        showToast('Error signing out', 'error');
-      }
-    });
-  }
-
-  // Handle profile view
-  document.getElementById('view-profile').addEventListener('click', (e) => {
-    e.preventDefault();
-    showProfileModal();
-  });
-
-  // Handle profile edit
-  document.getElementById('edit-profile').addEventListener('click', (e) => {
-    e.preventDefault();
-    showProfileEditModal();
-  });
-
-  // Handle my issues
-  document.getElementById('my-issues').addEventListener('click', (e) => {
-    e.preventDefault();
-    showMyIssues();
-  });
-
-  // Handle settings
-  document.getElementById('settings').addEventListener('click', (e) => {
-    e.preventDefault();
-    showSettingsModal();
-  });
-}
-
-function setupUnauthenticatedUI() {
-  const signInButton = document.getElementById('sign-in');
-  const signUpButton = document.getElementById('sign-up');
-
-  if (signInButton) {
-    signInButton.addEventListener('click', () => showAuthModal('sign-in'));
-  }
-
-  if (signUpButton) {
-    signUpButton.addEventListener('click', () => showAuthModal('sign-up'));
+    // Add auth button handlers
+    document.getElementById('sign-in').addEventListener('click', () => showAuthModal('sign-in'));
+    document.getElementById('sign-up').addEventListener('click', () => showAuthModal('sign-up'));
   }
 }
 
@@ -438,17 +359,19 @@ function showAuthModal(type = 'sign-in') {
           </div>
           <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" required>
+            <input type="password" id="password" required minlength="6">
           </div>
           ${type === 'sign-up' ? `
             <div class="form-group">
               <label for="confirm-password">Confirm Password</label>
-              <input type="password" id="confirm-password" required>
+              <input type="password" id="confirm-password" required minlength="6">
             </div>
           ` : ''}
-          <button type="submit" class="submit-button">
-            ${type === 'sign-in' ? 'Sign In' : 'Sign Up'}
-          </button>
+          <div class="form-actions">
+            <button type="submit" class="submit-button">
+              ${type === 'sign-in' ? 'Sign In' : 'Sign Up'}
+            </button>
+          </div>
         </form>
         <div class="auth-separator">
           <span>or</span>
@@ -465,8 +388,8 @@ function showAuthModal(type = 'sign-in') {
         </div>
         <p class="auth-switch">
           ${type === 'sign-in'
-            ? 'Don\'t have an account? <a href="#" onclick="showAuthModal(\'sign-up\')">Sign Up</a>'
-            : 'Already have an account? <a href="#" onclick="showAuthModal(\'sign-in\')">Sign In</a>'
+            ? 'Don\'t have an account? <a href="#" id="switch-to-signup">Sign Up</a>'
+            : 'Already have an account? <a href="#" id="switch-to-signin">Sign In</a>'
           }
         </p>
       </div>
@@ -478,47 +401,68 @@ function showAuthModal(type = 'sign-in') {
   // Add event listeners
   const closeButton = modal.querySelector('.close-button');
   const form = modal.querySelector('#auth-form');
+  const switchLink = modal.querySelector('#switch-to-signup, #switch-to-signin');
 
-  closeButton.addEventListener('click', () => {
+  const closeModal = () => {
     modal.classList.add('fade-out');
     setTimeout(() => modal.remove(), 300);
+  };
+
+  closeButton.addEventListener('click', closeModal);
+
+  // Switch between sign in and sign up
+  switchLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    modal.remove();
+    showAuthModal(type === 'sign-in' ? 'sign-up' : 'sign-in');
   });
 
+  // Handle form submission
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const email = form.querySelector('#email').value;
     const password = form.querySelector('#password').value;
 
     try {
+      let result;
+      
       if (type === 'sign-up') {
         const confirmPassword = form.querySelector('#confirm-password').value;
         if (password !== confirmPassword) {
           throw new Error('Passwords do not match');
         }
         
-        const { error } = await supabase.auth.signUp({
+        result = await supabase.auth.signUp({
           email,
-          password
+          password,
+          options: {
+            emailRedirectTo: window.location.origin
+          }
         });
-        if (error) throw error;
-        
-        showToast('Please check your email to verify your account', 'info');
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        result = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        if (error) throw error;
       }
 
-      modal.remove();
+      if (result.error) throw result.error;
+
+      if (type === 'sign-up') {
+        showToast('Please check your email to verify your account', 'success');
+      } else {
+        showToast('Successfully signed in!', 'success');
+      }
+
+      closeModal();
     } catch (error) {
       console.error('Auth error:', error);
       showToast(error.message, 'error');
     }
   });
 
-  // Animate in
+  // Animate modal in
   requestAnimationFrame(() => {
     modal.classList.add('show');
   });
@@ -526,16 +470,17 @@ function showAuthModal(type = 'sign-in') {
 
 async function signInWithProvider(provider) {
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: window.location.origin
       }
     });
+
     if (error) throw error;
   } catch (error) {
     console.error('Social auth error:', error);
-    showToast('Error signing in with ' + provider, 'error');
+    showToast(`Error signing in with ${provider}`, 'error');
   }
 }
 

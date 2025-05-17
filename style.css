@@ -675,10 +675,78 @@ button {
   font-size: 1.1em;
 }
 
-/* Auth specific styles */
-.auth-form {
+/* Auth section styles */
+.auth-section {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.auth-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.auth-button:hover {
+  background-color: #45a049;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.profile-button:hover {
+  background-color: #e9ecef;
+}
+
+.profile-button i {
+  color: #666;
+}
+
+/* Auth modal styles */
+.auth-modal .modal-content {
   max-width: 400px;
-  margin: 0 auto;
+}
+
+.auth-form {
+  margin-bottom: 20px;
+}
+
+.auth-form .form-group {
+  margin-bottom: 15px;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .auth-separator {
@@ -706,10 +774,10 @@ button {
 }
 
 .auth-separator span {
-  background-color: #fff;
+  background-color: white;
   padding: 0 10px;
   color: #666;
-  font-size: 0.9em;
+  font-size: 14px;
 }
 
 .social-auth {
@@ -723,13 +791,13 @@ button {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  background-color: #fff;
+  background-color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  font-size: 1rem;
+  font-size: 14px;
   transition: background-color 0.2s;
 }
 
@@ -748,11 +816,12 @@ button {
 .auth-switch {
   text-align: center;
   margin-top: 20px;
-  font-size: 0.9em;
+  font-size: 14px;
+  color: #666;
 }
 
 .auth-switch a {
-  color: #2196F3;
+  color: #4CAF50;
   text-decoration: none;
 }
 
