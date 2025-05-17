@@ -1,210 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Earth - Global Democracy Platform</title>
-    <link rel="stylesheet" href="style.css" />
-    <!-- Mapbox GL JS -->
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth - Global Voice for Change</title>
+    
+    <!-- Mapbox -->
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    
     <!-- Mapbox Geocoder -->
-    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+    
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Ensure viewport is set for mobile -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <nav class="top-nav">
-      <div class="nav-left">
-        <h1>🌍 Earth</h1>
+    <header>
+      <nav>
+        <div class="logo">
+          <h1>Earth</h1>
+        </div>
         <div class="nav-links">
-          <a href="index.html" class="active"><i class="fas fa-globe"></i> World Map</a>
-          <a href="forums.html"><i class="fas fa-comments"></i> Forums</a>
-          <a href="analytics.html"><i class="fas fa-chart-line"></i> Analytics</a>
-          <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+          <a href="#" class="active">Map</a>
+          <a href="analytics.html">Analytics</a>
+          <a href="forums.html">Forums</a>
+          <a href="about.html">About</a>
         </div>
-      </div>
-      <div class="nav-right">
-        <div id="auth-buttons">
-          <button id="login-button" class="auth-button">Sign In</button>
-          <button id="register-button" class="auth-button">Register</button>
+        <div class="auth-section" id="auth-section">
+          <!-- Auth buttons will be injected here -->
         </div>
-        <div id="user-info" class="hidden">
-          <span id="user-name"></span>
-          <button id="logout-button" class="auth-button">Sign Out</button>
+      </nav>
+    </header>
+
+    <main>
+      <div id="map"></div>
+      
+      <div class="controls">
+        <div class="location-info">
+          <i class="fas fa-map-marker-alt"></i>
+          <span id="current-location">World</span>
         </div>
+        <button id="create-issue" class="action-button">
+          <i class="fas fa-plus"></i>
+          New Issue
+        </button>
       </div>
-    </nav>
 
-    <div class="main-container">
-      <div class="map-container">
-        <div id="map"></div>
-        <div class="map-overlay">
-          <div class="location-info">
-            <i class="fas fa-map-marker-alt"></i>
-            <span id="current-location">World</span>
-          </div>
-        </div>
-        <!-- Loading indicator for map -->
-        <div id="map-loading" class="loading-overlay hidden">
-          <div class="loading-spinner"></div>
-        </div>
+      <div id="issues-list" class="issues-list">
+        <!-- Issues will be loaded here -->
       </div>
-      <div class="side-panel">
-        <div class="panel-header">
-          <h2>Active Issues</h2>
-          <button id="create-issue" class="primary-button"><i class="fas fa-plus"></i> New Issue</button>
-        </div>
-        <div id="issues-list" class="panel-content">
-          <!-- Issues will be loaded here -->
-        </div>
-      </div>
-    </div>
+    </main>
 
-    <!-- Modal for creating new issues -->
-    <div id="issue-modal" class="modal hidden">
-      <div class="modal-content">
-        <h2>Create New Issue</h2>
-        <form id="issue-form">
-          <div class="form-group">
-            <label for="issue-title">Title</label>
-            <input type="text" id="issue-title" required maxlength="100">
-          </div>
-          <div class="form-group">
-            <label for="issue-description">Description</label>
-            <textarea id="issue-description" required maxlength="2000"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="issue-category">Category</label>
-            <select id="issue-category" required>
-              <option value="">Select a category</option>
-              <option value="environment">Environment</option>
-              <option value="education">Education</option>
-              <option value="healthcare">Healthcare</option>
-              <option value="economy">Economy</option>
-              <option value="social">Social Issues</option>
-              <option value="technology">Technology</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="cancel-button">Cancel</button>
-            <button type="submit" class="submit-button">Create Issue</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Auth modal -->
-    <div id="auth-modal" class="modal hidden">
-      <div class="modal-content">
-        <h2 id="auth-title">Sign In</h2>
-        <form id="auth-form">
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" required>
-          </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" required>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="cancel-button">Cancel</button>
-            <button type="submit" class="submit-button">Continue</button>
-          </div>
-          <p id="auth-switch">
-            Don't have an account? <a href="#" id="auth-switch-link">Register</a>
-          </p>
-        </form>
-      </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-      <div class="loading-spinner"></div>
-    </div>
-
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <!-- Create Poll Modal -->
-    <div id="create-poll-modal" class="modal">
-      <div class="modal-content">
-        <h2>Create New Poll</h2>
-        <form id="poll-form" novalidate>
-          <div class="form-group">
-            <label for="poll-title">Title</label>
-            <input 
-              type="text" 
-              id="poll-title" 
-              required 
-              maxlength="200"
-              placeholder="What would you like to discuss?"
-            >
-            <div class="validation-message"></div>
-          </div>
-          
-          <div class="form-group">
-            <label for="poll-description">Description</label>
-            <textarea 
-              id="poll-description" 
-              required 
-              maxlength="2000"
-              placeholder="Provide more details about the issue..."
-            ></textarea>
-            <div class="validation-message"></div>
-          </div>
-          
-          <div class="form-group">
-            <label for="poll-category">Category</label>
-            <select id="poll-category" required>
-              <option value="">Select a category</option>
-              <option value="environment">Environment</option>
-              <option value="economy">Economy</option>
-              <option value="education">Education</option>
-              <option value="healthcare">Healthcare</option>
-              <option value="social">Social Issues</option>
-              <option value="technology">Technology</option>
-              <option value="governance">Governance</option>
-            </select>
-            <div class="validation-message"></div>
-          </div>
-          
-          <div class="form-group">
-            <label>Options</label>
-            <div id="poll-options">
-              <div class="option-input">
-                <input type="text" placeholder="Option 1" required>
-                <button type="button" class="remove-option" disabled>
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              <div class="option-input">
-                <input type="text" placeholder="Option 2" required>
-                <button type="button" class="remove-option" disabled>
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-            </div>
-            <button type="button" id="add-option" class="secondary-button">
-              <i class="fas fa-plus"></i> Add Option
-            </button>
-          </div>
-          
-          <div class="form-actions">
-            <button type="button" class="cancel-button">Cancel</button>
-            <button type="submit" class="submit-button">
-              Create Poll
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Load our script last -->
     <script src="script.js"></script>
   </body>
 </html>

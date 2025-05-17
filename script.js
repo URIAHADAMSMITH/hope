@@ -112,7 +112,7 @@ async function handleError(error, context = '') {
   await attemptRecovery(appError);
 
   // Show user-friendly message
-  showErrorMessage(appError);
+  showToast(appError.message, appError.type);
 }
 
 function categorizeError(error) {
@@ -186,33 +186,41 @@ function redirectToAuth() {
   window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
 }
 
-function showErrorMessage(error) {
-  let message = 'An unexpected error occurred';
-  let type = 'error';
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <i class="fas ${getToastIcon(type)}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
 
-  switch (error.type) {
-    case ErrorTypes.MAP:
-      message = 'There was an issue with the map. Please try again.';
-      break;
-    case ErrorTypes.DATABASE:
-      message = 'Database connection issue. Retrying...';
-      type = 'warning';
-      break;
-    case ErrorTypes.NETWORK:
-      message = 'Network connection lost. Please check your connection.';
-      type = 'warning';
-      break;
-    case ErrorTypes.AUTH:
-      message = 'Please sign in to continue.';
-      type = 'info';
-      break;
-    case ErrorTypes.VALIDATION:
-      message = error.message;
-      type = 'warning';
-      break;
+function getToastIcon(type) {
+  switch (type) {
+    case 'success':
+      return 'fa-check-circle';
+    case 'error':
+      return 'fa-times-circle';
+    case 'warning':
+      return 'fa-exclamation-triangle';
+    default:
+      return 'fa-info-circle';
   }
-
-  showToast(message, type);
 }
 
 function logError(error) {
@@ -678,7 +686,7 @@ async function initializeApp() {
     // Setup event listeners
     await setupEventListeners();
 
-    // Setup issue creation
+    // Setup issue creation (after map is initialized)
     setupIssueCreation();
 
     // ... rest of initialization code ...
@@ -882,20 +890,6 @@ function initializeMapLayers() {
 
 async function setupEventListeners() {
   try {
-    // New Issue button
-    const createIssueButton = document.getElementById('create-issue');
-    const issueModal = document.getElementById('issue-modal');
-    const issueForm = document.getElementById('issue-form');
-    
-    if (createIssueButton && issueModal) {
-      createIssueButton.addEventListener('click', () => {
-        console.log('Create Issue button clicked');
-        if (issueForm) issueForm.reset();
-        issueModal.classList.remove('hidden');
-        issueModal.classList.add('show');
-      });
-    }
-
     // Close modals when clicking outside
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
@@ -919,14 +913,6 @@ async function setupEventListeners() {
         }
       });
     });
-
-    // Handle issue form submission
-    if (issueForm) {
-      issueForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await createNewIssue();
-      });
-    }
 
     // Handle escape key to close modals
     document.addEventListener('keydown', (e) => {
@@ -1535,3 +1521,262 @@ function shareIssue(issueId) {
       .catch(() => showToast('Failed to copy link', 'error'));
   }
 }
+
+function setupIssueCreation() {
+  const createIssueButton = document.getElementById('create-issue');
+  if (!createIssueButton) {
+    console.error('Create issue button not found');
+    return;
+  }
+
+  createIssueButton.addEventListener('click', () => {
+    if (!currentUser) {
+      showToast('Please sign in to create an issue', 'warning');
+      showAuthModal('sign-in');
+      return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal issue-modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create New Issue</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="issue-form">
+            <div class="form-group">
+              <label for="issue-title">Title</label>
+              <input type="text" id="issue-title" required>
+            </div>
+            <div class="form-group">
+              <label for="issue-category">Category</label>
+              <select id="issue-category" required>
+                <option value="Environment">Environment</option>
+                <option value="Infrastructure">Infrastructure</option>
+                <option value="Safety">Safety</option>
+                <option value="Community">Community</option>
+                <option value="Education">Education</option>
+                <option value="Health">Health</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="issue-description">Description</label>
+              <textarea id="issue-description" required></textarea>
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <div class="location-options">
+                <button type="button" id="use-map-location" class="location-option">
+                  <i class="fas fa-map-marker-alt"></i>
+                  Click on Map
+                </button>
+                <button type="button" id="use-current-location" class="location-option">
+                  <i class="fas fa-location-arrow"></i>
+                  Current Location
+                </button>
+                <button type="button" id="search-location" class="location-option">
+                  <i class="fas fa-search"></i>
+                  Search Location
+                </button>
+              </div>
+              <input type="text" id="selected-location" readonly>
+              <input type="hidden" id="location-lat">
+              <input type="hidden" id="location-lng">
+            </div>
+            <div class="form-actions">
+              <button type="button" class="cancel-button">Cancel</button>
+              <button type="submit" class="submit-button">Create Issue</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add event listeners
+    const closeButton = modal.querySelector('.close-button');
+    const cancelButton = modal.querySelector('.cancel-button');
+    const form = modal.querySelector('#issue-form');
+    const useMapLocation = modal.querySelector('#use-map-location');
+    const useCurrentLocation = modal.querySelector('#use-current-location');
+    const searchLocation = modal.querySelector('#search-location');
+
+    const closeModal = () => {
+      modal.classList.add('fade-out');
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    closeButton.addEventListener('click', closeModal);
+    cancelButton.addEventListener('click', closeModal);
+
+    // Handle map location selection
+    let mapClickListener;
+    useMapLocation.addEventListener('click', () => {
+      closeModal();
+      showToast('Click on the map to select a location', 'info');
+      
+      // Change cursor to crosshair
+      map.getCanvas().style.cursor = 'crosshair';
+      
+      // Add one-time click listener
+      mapClickListener = (e) => {
+        const { lng, lat } = e.lngLat;
+        
+        // Reverse geocode the location
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`)
+          .then(response => response.json())
+          .then(data => {
+            const locationName = data.features[0]?.place_name || 'Unknown location';
+            showIssueModal(locationName, lat, lng);
+          })
+          .catch(error => {
+            console.error('Error getting location name:', error);
+            showIssueModal('Unknown location', lat, lng);
+          });
+
+        // Remove click listener and reset cursor
+        map.off('click', mapClickListener);
+        map.getCanvas().style.cursor = '';
+      };
+      
+      map.on('click', mapClickListener);
+    });
+
+    // Handle current location
+    useCurrentLocation.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser', 'error');
+        return;
+      }
+
+      useCurrentLocation.disabled = true;
+      useCurrentLocation.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Reverse geocode the location
+          fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_TOKEN}`)
+            .then(response => response.json())
+            .then(data => {
+              const locationName = data.features[0]?.place_name || 'Unknown location';
+              document.getElementById('selected-location').value = locationName;
+              document.getElementById('location-lat').value = latitude;
+              document.getElementById('location-lng').value = longitude;
+            })
+            .catch(error => {
+              console.error('Error getting location name:', error);
+              showToast('Error getting location name', 'error');
+            })
+            .finally(() => {
+              useCurrentLocation.disabled = false;
+              useCurrentLocation.innerHTML = '<i class="fas fa-location-arrow"></i> Current Location';
+            });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          showToast('Error getting your location', 'error');
+          useCurrentLocation.disabled = false;
+          useCurrentLocation.innerHTML = '<i class="fas fa-location-arrow"></i> Current Location';
+        }
+      );
+    });
+
+    // Handle location search
+    searchLocation.addEventListener('click', () => {
+      const geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl
+      });
+
+      const searchModal = document.createElement('div');
+      searchModal.className = 'modal search-modal';
+      searchModal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Search Location</h2>
+            <button class="close-button">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="geocoder" class="geocoder"></div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(searchModal);
+      geocoder.addTo('#geocoder');
+
+      geocoder.on('result', (e) => {
+        const { place_name, center } = e.result;
+        document.getElementById('selected-location').value = place_name;
+        document.getElementById('location-lat').value = center[1];
+        document.getElementById('location-lng').value = center[0];
+        searchModal.remove();
+      });
+
+      searchModal.querySelector('.close-button').addEventListener('click', () => {
+        searchModal.remove();
+      });
+    });
+
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('issue-title').value;
+      const category = document.getElementById('issue-category').value;
+      const description = document.getElementById('issue-description').value;
+      const locationName = document.getElementById('selected-location').value;
+      const latitude = document.getElementById('location-lat').value;
+      const longitude = document.getElementById('location-lng').value;
+
+      if (!latitude || !longitude) {
+        showToast('Please select a location', 'error');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('issues')
+          .insert([
+            {
+              title,
+              category,
+              description,
+              latitude: parseFloat(latitude),
+              longitude: parseFloat(longitude),
+              location_name: locationName,
+              user_id: currentUser.id
+            }
+          ]);
+
+        if (error) throw error;
+
+        showToast('Issue created successfully!', 'success');
+        closeModal();
+        loadLocationIssues();
+      } catch (error) {
+        console.error('Error creating issue:', error);
+        showToast('Error creating issue', 'error');
+      }
+    });
+
+    // Animate modal in
+    requestAnimationFrame(() => {
+      modal.classList.add('show');
+    });
+  });
+}
+
+// Helper function to show issue modal with location
+function showIssueModal(locationName, lat, lng) {
+  document.getElementById('selected-location').value = locationName;
+  document.getElementById('location-lat').value = lat;
+  document.getElementById('location-lng').value = lng;
+}
+
