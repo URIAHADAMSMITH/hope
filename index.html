@@ -4,15 +4,17 @@
     <title>Earth - Global Democracy Platform</title>
     <link rel="stylesheet" href="style.css" />
     <!-- Mapbox GL JS -->
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
     <!-- Mapbox Geocoder -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
     <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Ensure viewport is set for mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
     <nav class="top-nav">
@@ -46,6 +48,10 @@
             <span id="current-location">World</span>
           </div>
         </div>
+        <!-- Loading indicator for map -->
+        <div id="map-loading" class="loading-overlay hidden">
+          <div class="loading-spinner"></div>
+        </div>
       </div>
       <div class="side-panel">
         <div class="panel-header">
@@ -74,6 +80,7 @@
           <div class="form-group">
             <label for="issue-category">Category</label>
             <select id="issue-category" required>
+              <option value="">Select a category</option>
               <option value="environment">Environment</option>
               <option value="education">Education</option>
               <option value="healthcare">Healthcare</option>
@@ -120,10 +127,8 @@
       <div class="loading-spinner"></div>
     </div>
 
-    <!-- Loader -->
-    <div id="loader">
-      <div class="loader-spinner"></div>
-    </div>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
     <!-- Create Poll Modal -->
     <div id="create-poll-modal" class="modal">
@@ -199,6 +204,7 @@
       </div>
     </div>
 
+    <!-- Load our script last -->
     <script src="script.js"></script>
   </body>
 </html>

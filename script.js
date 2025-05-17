@@ -1,13 +1,13 @@
 // Map configuration
 const MAPBOX_TOKEN = 'pk.eyJ1IjoidXJpYWhhZGFtc21pdGgiLCJhIjoiY21hcmF5OGlxMDhyajJscTd2eWUwOWppYyJ9.QyRYVNllITqSNxXYixHgmw';
-mapboxgl.accessToken = MAPBOX_TOKEN;
 
 // Initialize Supabase
 const SUPABASE_URL = 'https://acwnjyexyxtxtcdmmytr.supabase.co';
-const SUPABASE_KEY = 'your_supabase_key_here'; // You'll need to provide this
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjd25qeWV4eXh0eHRjZG1teXRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDg5NzQwMDAsImV4cCI6MjAyNDU1MDAwMH0.H7S8MhFp6E6uJ8ZHJ4JqJM2SQOqyM-mmVj5J3qa3CD4';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Global state
+let map; // Make map globally accessible
 let currentLocation = {
   type: 'global',
   name: 'World',
@@ -15,41 +15,65 @@ let currentLocation = {
 };
 
 // Initialize map when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  initializeMap();
-  setupEventListeners();
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Set Mapbox access token
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+
+    // Check if Mapbox GL JS is supported
+    if (!mapboxgl.supported()) {
+      alert('Your browser does not support Mapbox GL JS. Please try a different browser.');
+      return;
+    }
+
+    // Create the map
+    map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      center: [0, 20],
+      zoom: 2,
+      projection: 'mercator',
+      maxBounds: [[-180, -85], [180, 85]],
+      renderWorldCopies: false
+    });
+
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // Disable map rotation
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+
+    // Add geocoder control for location search
+    const geocoder = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl,
+      types: 'country,region',
+      placeholder: 'Search for a location...'
+    });
+    map.addControl(geocoder);
+
+    // Wait for map to load before adding layers
+    map.on('load', () => {
+      console.log('Map loaded successfully');
+      initializeMapLayers();
+    });
+
+    // Handle map errors
+    map.on('error', (e) => {
+      console.error('Map error:', e);
+      showToast('Error loading map. Please refresh the page.', 'error');
+    });
+
+    setupEventListeners();
+  } catch (error) {
+    console.error('Error initializing map:', error);
+    showToast('Error initializing map. Please refresh the page.', 'error');
+  }
 });
 
-function initializeMap() {
-  // Create the map
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/satellite-streets-v12',
-    center: [0, 20],
-    zoom: 2,
-    projection: 'mercator',
-    maxBounds: [[-180, -85], [180, 85]],
-    renderWorldCopies: false
-  });
-
-  // Add navigation controls
-  map.addControl(new mapboxgl.NavigationControl());
-
-  // Disable map rotation
-  map.dragRotate.disable();
-  map.touchZoomRotate.disableRotation();
-
-  // Add geocoder control for location search
-  const geocoder = new MapboxGeocoder({
-    accessToken: MAPBOX_TOKEN,
-    mapboxgl: mapboxgl,
-    types: 'country,region',
-    placeholder: 'Search for a location...'
-  });
-  map.addControl(geocoder);
-
-  // Initialize map layers when the map loads
-  map.on('load', () => {
+function initializeMapLayers() {
+  try {
     // Add source for issue locations
     map.addSource('issue-locations', {
       type: 'geojson',
@@ -118,93 +142,102 @@ function initializeMap() {
     });
 
     // Load initial issues
-    loadLocationIssues(map);
-  });
-
-  // Update location info based on map movement
-  map.on('moveend', () => {
-    const zoom = map.getZoom();
-    const center = map.getCenter();
-    updateLocationInfo(zoom, center);
-    loadLocationIssues(map);
-  });
-
-  // Handle cluster click
-  map.on('click', 'clusters', (e) => {
-    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-    const clusterId = features[0].properties.cluster_id;
-    map.getSource('issue-locations').getClusterExpansionZoom(
-      clusterId,
-      (err, zoom) => {
-        if (err) return;
-        map.easeTo({
-          center: features[0].geometry.coordinates,
-          zoom: zoom
-        });
-      }
-    );
-  });
-
-  // Handle individual issue point click
-  map.on('click', 'unclustered-point', (e) => {
-    const coordinates = e.features[0].geometry.coordinates.slice();
-    const issue = e.features[0].properties;
-    
-    while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-      coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-    }
-
-    showIssueDetails(issue);
-  });
-
-  // Change cursor on hover
-  map.on('mouseenter', 'clusters', () => {
-    map.getCanvas().style.cursor = 'pointer';
-  });
-  map.on('mouseleave', 'clusters', () => {
-    map.getCanvas().style.cursor = '';
-  });
-
-  map.on('mouseenter', 'unclustered-point', () => {
-    map.getCanvas().style.cursor = 'pointer';
-  });
-  map.on('mouseleave', 'unclustered-point', () => {
-    map.getCanvas().style.cursor = '';
-  });
-
-  return map;
+    loadLocationIssues();
+  } catch (error) {
+    console.error('Error initializing map layers:', error);
+    showToast('Error setting up map features. Please refresh the page.', 'error');
+  }
 }
 
 function setupEventListeners() {
-  // New Issue button
-  const createIssueButton = document.getElementById('create-issue');
-  const issueModal = document.getElementById('issue-modal');
-  
-  if (createIssueButton) {
-    createIssueButton.addEventListener('click', () => {
-      issueModal.classList.remove('hidden');
-    });
-  }
+  try {
+    // New Issue button
+    const createIssueButton = document.getElementById('create-issue');
+    const issueModal = document.getElementById('issue-modal');
+    
+    if (createIssueButton && issueModal) {
+      createIssueButton.addEventListener('click', () => {
+        // Reset form before showing
+        const issueForm = document.getElementById('issue-form');
+        if (issueForm) issueForm.reset();
+        issueModal.classList.remove('hidden');
+      });
+    }
 
-  // Close modal when clicking cancel
-  const cancelButtons = document.querySelectorAll('.cancel-button');
-  cancelButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-      e.preventDefault();
-      const modal = e.target.closest('.modal');
-      if (modal) {
-        modal.classList.add('hidden');
+    // Close modal when clicking outside
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.add('hidden');
+        }
+      });
+    });
+
+    // Close modal when clicking cancel
+    const cancelButtons = document.querySelectorAll('.cancel-button');
+    cancelButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        const modal = e.target.closest('.modal');
+        if (modal) {
+          modal.classList.add('hidden');
+        }
+      });
+    });
+
+    // Handle issue form submission
+    const issueForm = document.getElementById('issue-form');
+    if (issueForm) {
+      issueForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await createNewIssue();
+      });
+    }
+
+    // Handle escape key to close modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const visibleModals = document.querySelectorAll('.modal:not(.hidden)');
+        visibleModals.forEach(modal => modal.classList.add('hidden'));
       }
     });
-  });
 
-  // Handle issue form submission
-  const issueForm = document.getElementById('issue-form');
-  if (issueForm) {
-    issueForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await createNewIssue();
-    });
+    // Handle authentication buttons
+    const loginButton = document.getElementById('login-button');
+    const registerButton = document.getElementById('register-button');
+    const authModal = document.getElementById('auth-modal');
+    const authTitle = document.getElementById('auth-title');
+    const authSwitch = document.getElementById('auth-switch');
+    const authSwitchLink = document.getElementById('auth-switch-link');
+
+    if (loginButton && registerButton && authModal) {
+      loginButton.addEventListener('click', () => {
+        authTitle.textContent = 'Sign In';
+        authSwitch.innerHTML = 'Don\'t have an account? <a href="#" id="auth-switch-link">Register</a>';
+        authModal.classList.remove('hidden');
+      });
+
+      registerButton.addEventListener('click', () => {
+        authTitle.textContent = 'Register';
+        authSwitch.innerHTML = 'Already have an account? <a href="#" id="auth-switch-link">Sign In</a>';
+        authModal.classList.remove('hidden');
+      });
+
+      authSwitch.addEventListener('click', (e) => {
+        if (e.target.id === 'auth-switch-link') {
+          e.preventDefault();
+          const isLogin = authTitle.textContent === 'Sign In';
+          authTitle.textContent = isLogin ? 'Register' : 'Sign In';
+          authSwitch.innerHTML = isLogin 
+            ? 'Already have an account? <a href="#" id="auth-switch-link">Sign In</a>'
+            : 'Don\'t have an account? <a href="#" id="auth-switch-link">Register</a>';
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error setting up event listeners:', error);
+    showToast('Error setting up application', 'error');
   }
 }
 
@@ -212,8 +245,19 @@ async function createNewIssue() {
   const title = document.getElementById('issue-title').value;
   const description = document.getElementById('issue-description').value;
   const category = document.getElementById('issue-category').value;
+  const submitButton = document.querySelector('#issue-form .submit-button');
+  const loadingOverlay = document.getElementById('loading-overlay');
+
+  if (!title || !description || !category) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
 
   try {
+    // Show loading state
+    submitButton.disabled = true;
+    loadingOverlay.classList.remove('hidden');
+
     const { data, error } = await supabase
       .from('issues')
       .insert([
@@ -227,7 +271,8 @@ async function createNewIssue() {
           longitude: currentLocation.center[0],
           created_at: new Date().toISOString()
         }
-      ]);
+      ])
+      .select();
 
     if (error) throw error;
 
@@ -235,16 +280,25 @@ async function createNewIssue() {
     document.getElementById('issue-modal').classList.add('hidden');
     document.getElementById('issue-form').reset();
 
-    // Reload issues
-    loadLocationIssues(map);
+    // Reload issues on the map
+    await loadLocationIssues();
     showToast('Issue created successfully!');
   } catch (error) {
     console.error('Error creating issue:', error);
-    showToast('Failed to create issue', 'error');
+    showToast(error.message || 'Failed to create issue', 'error');
+  } finally {
+    // Reset loading state
+    submitButton.disabled = false;
+    loadingOverlay.classList.add('hidden');
   }
 }
 
-async function loadLocationIssues(map) {
+async function loadLocationIssues() {
+  if (!map) {
+    console.error('Map not initialized');
+    return;
+  }
+
   try {
     const bounds = map.getBounds();
     
@@ -254,7 +308,8 @@ async function loadLocationIssues(map) {
       .gte('latitude', bounds._sw.lat)
       .lte('latitude', bounds._ne.lat)
       .gte('longitude', bounds._sw.lng)
-      .lte('longitude', bounds._ne.lng);
+      .lte('longitude', bounds._ne.lng)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -268,19 +323,23 @@ async function loadLocationIssues(map) {
         id: issue.id,
         title: issue.title,
         category: issue.category,
-        description: issue.description
+        description: issue.description,
+        created_at: issue.created_at
       }
     }));
 
-    map.getSource('issue-locations').setData({
-      type: 'FeatureCollection',
-      features: features
-    });
+    if (map.getSource('issue-locations')) {
+      map.getSource('issue-locations').setData({
+        type: 'FeatureCollection',
+        features: features
+      });
+    }
 
     // Update side panel
     displayIssues(issues);
   } catch (error) {
     console.error('Error loading issues:', error);
+    showToast('Error loading issues', 'error');
   }
 }
 
@@ -316,10 +375,11 @@ function showIssueDetails(issue) {
 }
 
 function showToast(message, type = 'success') {
+  const toastContainer = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.textContent = message;
-  document.body.appendChild(toast);
+  toastContainer.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
 
