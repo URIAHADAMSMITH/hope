@@ -1,11 +1,61 @@
+// Initialize environment variables and main app
+async function initializeApp() {
+  try {
+    // Fetch environment variables
+    const response = await fetch('/env-config');
+    const config = await response.json();
+    
+    // Set up Mapbox
+    mapboxgl.accessToken = config.MAPBOX_TOKEN;
+    
+    // Initialize Supabase client
+    const { createClient } = supabase;
+    const db = createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
+
+    // Initialize map
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      center: [0, 20],
+      zoom: 2,
+      projection: 'mercator',
+      maxBounds: [[-180, -85], [180, 85]],
+      renderWorldCopies: false
+    });
+
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // Disable map rotation
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+
+    // Add geocoder control for location search
+    const geocoder = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl,
+      types: 'country,region',
+      placeholder: 'Search for a location...'
+    });
+    map.addControl(geocoder);
+
+    // Initialize rest of the app...
+    initializeMapLayers(map);
+    initializeEventListeners(map);
+    
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    document.getElementById('map').innerHTML = '<div class="error-message">Failed to load map. Please check your configuration.</div>';
+  }
+}
+
+// Start the application
+document.addEventListener('DOMContentLoaded', initializeApp);
+
 // Load environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://acwnjyexyxtxtcdmmytr.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
-
-// Initialize Supabase client
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Authentication state and handlers
 let currentUser = null;

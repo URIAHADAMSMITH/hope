@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Global Voice - Direct Democracy Platform</title>
+    <title>Earth - Global Democracy Platform</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
     <!-- Mapbox GL JS -->
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
-    <!-- Add Font Awesome for icons -->
+    <!-- Mapbox Geocoder -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   </head>
   <body>
     <nav class="top-nav">
       <div class="nav-left">
-        <h1>🌍 Global Voice</h1>
-        <span id="current-location">World</span>
-      </div>
-      <div class="nav-center">
-        <button id="zoom-out"><i class="fas fa-globe"></i> World View</button>
-        <button id="create-issue" class="primary-button"><i class="fas fa-plus"></i> New Issue</button>
+        <h1>🌍 Earth</h1>
+        <div class="nav-links">
+          <a href="index.html" class="active"><i class="fas fa-globe"></i> World Map</a>
+          <a href="forums.html"><i class="fas fa-comments"></i> Forums</a>
+          <a href="analytics.html"><i class="fas fa-chart-line"></i> Analytics</a>
+          <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+        </div>
       </div>
       <div class="nav-right">
-        <!-- Auth buttons will be replaced by user info when logged in -->
         <div id="auth-buttons">
           <button id="login-button" class="auth-button">Sign In</button>
           <button id="register-button" class="auth-button">Register</button>
@@ -34,40 +38,23 @@
     </nav>
 
     <div class="main-container">
-      <div id="map"></div>
-      
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="map-overlay">
+          <div class="location-info">
+            <i class="fas fa-map-marker-alt"></i>
+            <span id="current-location">World</span>
+          </div>
+        </div>
+      </div>
       <div class="side-panel">
         <div class="panel-header">
-          <h2>Current Issues</h2>
-          <button id="create-poll" class="primary-button">
-            <i class="fas fa-plus"></i> Create Poll
-          </button>
+          <h2>Active Issues</h2>
+          <button id="create-issue" class="primary-button"><i class="fas fa-plus"></i> New Issue</button>
         </div>
-        
-        <!-- Loading Placeholder -->
-        <div id="loading-placeholder" class="hidden">
-          <div class="poll-item loading">
-            <div class="poll-header"></div>
-            <h3></h3>
-            <p></p>
-          </div>
-          <div class="poll-item loading">
-            <div class="poll-header"></div>
-            <h3></h3>
-            <p></p>
-          </div>
-          <div class="poll-item loading">
-            <div class="poll-header"></div>
-            <h3></h3>
-            <p></p>
-          </div>
+        <div id="issues-list" class="panel-content">
+          <!-- Issues will be loaded here -->
         </div>
-        
-        <!-- Issues List -->
-        <div id="issues-list"></div>
-        
-        <!-- Pagination -->
-        <div id="pagination" class="pagination"></div>
       </div>
     </div>
 
