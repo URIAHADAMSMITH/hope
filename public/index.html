@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Earth - A platform for global democratic participation and issue tracking">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <title>Earth - Global Voice for Change</title>
+    
+    <!-- PWA support -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/icon-192.png">
+    
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/js/app.js" as="script">
+    <link rel="preload" href="/css/style.css" as="style">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/webfonts/fa-solid-900.woff2" as="font" crossorigin>
+    
+    <!-- Mapbox -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" rel="stylesheet">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5"></script>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- App styles -->
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- App header -->
+    <header class="app-header">
+        <div class="header-left">
+            <h1 class="app-title">
+                <i class="fas fa-globe-americas"></i>
+                Earth
+            </h1>
+            <nav class="main-nav">
+                <button id="toggle-view" class="nav-button" title="Toggle view">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button id="refresh-issues" class="nav-button" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </nav>
+        </div>
+        <div class="header-center">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="issue-search" placeholder="Search issues...">
+            </div>
+            <div id="category-filters" class="category-filters"></div>
+        </div>
+        <div class="header-right">
+            <button id="create-issue" class="primary-button">
+                <i class="fas fa-plus"></i>
+                New Issue
+            </button>
+            <div id="auth-section" class="auth-section"></div>
+        </div>
+    </header>
+    
+    <!-- Main content -->
+    <main class="app-content">
+        <!-- Map container -->
+        <div id="map" class="map-container"></div>
+        
+        <!-- Issues panel -->
+        <div class="issues-panel">
+            <div class="panel-header">
+                <h2>
+                    <span id="current-location">World</span>
+                    <small>Issues</small>
+                </h2>
+            </div>
+            <div id="issues-list" class="issues-list"></div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+    </main>
+    
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loader"></div>
+    </div>
+    
+    <!-- Toast container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Error boundary -->
+    <div id="error-boundary" class="error-boundary hidden">
+        <div class="error-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Oops! Something went wrong</h3>
+            <p id="error-message"></p>
+            <button onclick="window.location.reload()">Reload App</button>
+        </div>
+    </div>
+    
+    <!-- Offline indicator -->
+    <div id="offline-indicator" class="offline-indicator hidden">
+        <i class="fas fa-wifi"></i>
+        You are offline
+    </div>
+    
+    <!-- App scripts -->
+    <script src="/js/config.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/map.js"></script>
+    <script src="/js/issues.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <!-- PWA install prompt -->
+    <template id="install-prompt">
+        <div class="install-prompt">
+            <div class="prompt-content">
+                <i class="fas fa-download"></i>
+                <h3>Install Earth</h3>
+                <p>Add Earth to your home screen for quick access</p>
+                <div class="prompt-actions">
+                    <button class="secondary-button" id="install-later">Later</button>
+                    <button class="primary-button" id="install-now">Install</button>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Keyboard shortcuts help -->
+    <template id="shortcuts-help">
+        <div class="shortcuts-help">
+            <div class="help-content">
+                <h3>Keyboard Shortcuts</h3>
+                <div class="shortcuts-grid">
+                    <div class="shortcut">
+                        <kbd>N</kbd>
+                        <span>Create new issue</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>F</kbd>
+                        <span>Focus search</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>R</kbd>
+                        <span>Reset map view</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>L</kbd>
+                        <span>Toggle list/grid view</span>
+                    </div>
+                    <div class="shortcut">
+                        <kbd>?</kbd>
+                        <span>Show this help</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Fallback content for browsers with JavaScript disabled -->
+    <noscript>
+        <div class="noscript-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <h2>JavaScript Required</h2>
+            <p>Please enable JavaScript to use Earth. This application requires JavaScript for its core functionality.</p>
+        </div>
+    </noscript>
+</body>
+</html> 

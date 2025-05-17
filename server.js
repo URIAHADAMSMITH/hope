@@ -1,31 +1,79 @@
+require('dotenv').config();
 const express = require('express');
+const helmet = require('helmet');
+const compression = require('compression');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
-const dotenv = require('dotenv');
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Serve static files from the root directory
-app.use(express.static('.'));
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'api.mapbox.com', 'cdn.jsdelivr.net'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'api.mapbox.com', 'cdnjs.cloudflare.com'],
+      imgSrc: ["'self'", 'data:', 'api.mapbox.com'],
+      connectSrc: ["'self'", 'api.mapbox.com', process.env.SUPABASE_URL],
+      fontSrc: ["'self'", 'cdnjs.cloudflare.com'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'none'"],
+      frameSrc: ["'none'"]
+    }
+  }
+}));
 
-// Serve environment variables to the frontend
-app.get('/env-config', (req, res) => {
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
+
+// Enable CORS
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Compression
+app.use(compression());
+
+// Body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// API routes
+app.get('/api/config', (req, res) => {
+  // Only send necessary frontend configuration
   res.json({
-    MAPBOX_TOKEN: process.env.MAPBOX_TOKEN,
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_KEY: process.env.SUPABASE_KEY
+    mapboxToken: process.env.MAPBOX_TOKEN,
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY
   });
 });
 
-// Serve index.html for all routes (SPA support)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  });
+});
+
+// Handle 404
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
 });
 
 // Start server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 }); 

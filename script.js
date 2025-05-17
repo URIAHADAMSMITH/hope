@@ -4,7 +4,15 @@ const MAPBOX_TOKEN = 'pk.eyJ1IjoidXJpYWhhZGFtc21pdGgiLCJhIjoiY21hcmF5OGlxMDhyajJ
 // Initialize Supabase
 const SUPABASE_URL = 'https://acwnjyexyxtxtcdmmytr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjd25qeWV4eXh0eHRjZG1teXRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDg5NzQwMDAsImV4cCI6MjAyNDU1MDAwMH0.H7S8MhFp6E6uJ8ZHJ4JqJM2SQOqyM-mmVj5J3qa3CD4';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Create Supabase client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
 
 // Map styles
 const MAP_STYLES = {
@@ -360,6 +368,7 @@ function showAuthModal(type = 'sign-in') {
           <div class="form-group">
             <label for="password">Password</label>
             <input type="password" id="password" required minlength="6">
+            <small class="help-text">Password must be at least 6 characters long</small>
           </div>
           ${type === 'sign-up' ? `
             <div class="form-group">
@@ -368,7 +377,7 @@ function showAuthModal(type = 'sign-in') {
             </div>
           ` : ''}
           <div class="form-actions">
-            <button type="submit" class="submit-button">
+            <button type="submit" class="submit-button" id="auth-submit">
               ${type === 'sign-in' ? 'Sign In' : 'Sign Up'}
             </button>
           </div>
@@ -401,6 +410,7 @@ function showAuthModal(type = 'sign-in') {
   // Add event listeners
   const closeButton = modal.querySelector('.close-button');
   const form = modal.querySelector('#auth-form');
+  const submitButton = modal.querySelector('#auth-submit');
   const switchLink = modal.querySelector('#switch-to-signup, #switch-to-signin');
 
   const closeModal = () => {
@@ -425,6 +435,9 @@ function showAuthModal(type = 'sign-in') {
     const password = form.querySelector('#password').value;
 
     try {
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      
       let result;
       
       if (type === 'sign-up') {
@@ -437,7 +450,10 @@ function showAuthModal(type = 'sign-in') {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: window.location.origin,
+            data: {
+              email_confirmed: false
+            }
           }
         });
       } else {
@@ -458,7 +474,16 @@ function showAuthModal(type = 'sign-in') {
       closeModal();
     } catch (error) {
       console.error('Auth error:', error);
-      showToast(error.message, 'error');
+      
+      let errorMessage = error.message;
+      if (error.message.includes('invalid api key')) {
+        errorMessage = 'Authentication service is not properly configured. Please try again later.';
+      }
+      
+      showToast(errorMessage, 'error');
+    } finally {
+      submitButton.disabled = false;
+      submitButton.innerHTML = type === 'sign-in' ? 'Sign In' : 'Sign Up';
     }
   });
 
@@ -470,17 +495,41 @@ function showAuthModal(type = 'sign-in') {
 
 async function signInWithProvider(provider) {
   try {
+    showToast('Connecting to ' + provider + '...', 'info');
+    
+    // Check if provider is enabled
+    const { data: providers } = await supabase.auth.getSettings();
+    const isEnabled = providers?.external?.[provider]?.enabled;
+    
+    if (!isEnabled) {
+      throw new Error(`${provider} sign in is not configured yet. Please try email sign in.`);
+    }
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: window.location.origin
+        redirectTo: window.location.origin,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
+        }
       }
     });
 
     if (error) throw error;
+
+    // Success will be handled by the OAuth redirect
   } catch (error) {
     console.error('Social auth error:', error);
-    showToast(`Error signing in with ${provider}`, 'error');
+    
+    let errorMessage = 'Error signing in with ' + provider;
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (error.error_description) {
+      errorMessage = error.error_description;
+    }
+    
+    showToast(errorMessage, 'error');
   }
 }
 
