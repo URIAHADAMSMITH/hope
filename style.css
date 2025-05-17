@@ -449,6 +449,14 @@ button {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.show {
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal.hidden {
@@ -463,38 +471,75 @@ button {
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+  transform: translateY(-20px);
+  transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+  transform: translateY(0);
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
   color: var(--text-color);
+  font-weight: 500;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.form-group textarea {
-  min-height: 100px;
-  resize: vertical;
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
+}
+
+.form-actions button {
+  min-width: 100px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.form-actions .submit-button {
+  background: var(--primary-color);
+  color: white;
+}
+
+.form-actions .submit-button:hover {
+  background: var(--primary-dark);
+}
+
+.form-actions .cancel-button {
+  background: var(--background-light);
+  color: var(--text-color);
+}
+
+.form-actions .cancel-button:hover {
+  background: var(--border-color);
 }
 
 .hidden {
@@ -613,16 +658,31 @@ button {
   bottom: 20px;
   right: 20px;
   z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 250px;
+  padding: 12px 20px;
+  border-radius: 4px;
   background: white;
   color: #333;
-  padding: 12px 24px;
-  border-radius: 4px;
-  margin-top: 10px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  animation: slideIn 0.3s ease-out;
+  transform: translateX(120%);
+  transition: transform 0.3s ease;
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast i {
+  font-size: 1.2em;
 }
 
 .toast-success {
@@ -633,11 +693,6 @@ button {
 .toast-error {
   background: #f44336;
   color: white;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
 }
 
 /* Enhanced form validation */
@@ -667,7 +722,7 @@ button:disabled {
 
 button.loading {
   position: relative;
-  color: transparent;
+  color: transparent !important;
 }
 
 button.loading::after {
@@ -678,10 +733,10 @@ button.loading::after {
   transform: translate(-50%, -50%);
   width: 20px;
   height: 20px;
-  border: 2px solid #ffffff;
-  border-top: 2px solid transparent;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 /* Enhanced modal transitions */
@@ -841,27 +896,6 @@ button.loading::after {
   100% {
     transform: translateX(100%);
   }
-}
-
-/* Enhanced Button Loading State */
-button.loading {
-  position: relative;
-  color: transparent !important;
-  pointer-events: none;
-}
-
-button.loading::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
 /* Toast Enhancements */

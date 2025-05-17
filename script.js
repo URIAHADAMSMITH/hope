@@ -154,21 +154,23 @@ function setupEventListeners() {
     // New Issue button
     const createIssueButton = document.getElementById('create-issue');
     const issueModal = document.getElementById('issue-modal');
+    const issueForm = document.getElementById('issue-form');
     
     if (createIssueButton && issueModal) {
       createIssueButton.addEventListener('click', () => {
-        // Reset form before showing
-        const issueForm = document.getElementById('issue-form');
+        console.log('Create Issue button clicked');
         if (issueForm) issueForm.reset();
         issueModal.classList.remove('hidden');
+        issueModal.classList.add('show');
       });
     }
 
-    // Close modal when clicking outside
+    // Close modals when clicking outside
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
+          modal.classList.remove('show');
           modal.classList.add('hidden');
         }
       });
@@ -181,13 +183,13 @@ function setupEventListeners() {
         e.preventDefault();
         const modal = e.target.closest('.modal');
         if (modal) {
+          modal.classList.remove('show');
           modal.classList.add('hidden');
         }
       });
     });
 
     // Handle issue form submission
-    const issueForm = document.getElementById('issue-form');
     if (issueForm) {
       issueForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -199,7 +201,10 @@ function setupEventListeners() {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const visibleModals = document.querySelectorAll('.modal:not(.hidden)');
-        visibleModals.forEach(modal => modal.classList.add('hidden'));
+        visibleModals.forEach(modal => {
+          modal.classList.remove('show');
+          modal.classList.add('hidden');
+        });
       }
     });
 
@@ -242,12 +247,14 @@ function setupEventListeners() {
 }
 
 async function createNewIssue() {
-  const title = document.getElementById('issue-title').value;
-  const description = document.getElementById('issue-description').value;
+  const title = document.getElementById('issue-title').value.trim();
+  const description = document.getElementById('issue-description').value.trim();
   const category = document.getElementById('issue-category').value;
   const submitButton = document.querySelector('#issue-form .submit-button');
   const loadingOverlay = document.getElementById('loading-overlay');
+  const issueModal = document.getElementById('issue-modal');
 
+  // Validate inputs
   if (!title || !description || !category) {
     showToast('Please fill in all required fields', 'error');
     return;
@@ -256,7 +263,22 @@ async function createNewIssue() {
   try {
     // Show loading state
     submitButton.disabled = true;
+    submitButton.classList.add('loading');
     loadingOverlay.classList.remove('hidden');
+
+    // Get current map center for location
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    
+    // Determine location type based on zoom level
+    let locationType = 'global';
+    if (zoom >= 6) {
+      locationType = 'state';
+    } else if (zoom >= 4) {
+      locationType = 'country';
+    } else if (zoom >= 2) {
+      locationType = 'continent';
+    }
 
     const { data, error } = await supabase
       .from('issues')
@@ -265,10 +287,10 @@ async function createNewIssue() {
           title,
           description,
           category,
-          location_type: currentLocation.type,
-          location_name: currentLocation.name,
-          latitude: currentLocation.center[1],
-          longitude: currentLocation.center[0],
+          location_type: locationType,
+          location_name: document.getElementById('current-location').textContent,
+          latitude: center.lat,
+          longitude: center.lng,
           created_at: new Date().toISOString()
         }
       ])
@@ -277,18 +299,20 @@ async function createNewIssue() {
     if (error) throw error;
 
     // Hide modal and reset form
-    document.getElementById('issue-modal').classList.add('hidden');
+    issueModal.classList.remove('show');
+    issueModal.classList.add('hidden');
     document.getElementById('issue-form').reset();
 
-    // Reload issues on the map
+    // Reload issues and show success message
     await loadLocationIssues();
-    showToast('Issue created successfully!');
+    showToast('Issue created successfully!', 'success');
   } catch (error) {
     console.error('Error creating issue:', error);
     showToast(error.message || 'Failed to create issue', 'error');
   } finally {
     // Reset loading state
     submitButton.disabled = false;
+    submitButton.classList.remove('loading');
     loadingOverlay.classList.add('hidden');
   }
 }
@@ -378,9 +402,26 @@ function showToast(message, type = 'success') {
   const toastContainer = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.textContent = message;
+  
+  // Add icon based on type
+  const icon = document.createElement('i');
+  icon.className = `fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}`;
+  toast.appendChild(icon);
+  
+  const text = document.createElement('span');
+  text.textContent = message;
+  toast.appendChild(text);
+  
   toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  
+  // Animate in
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 // Update location information based on zoom level
