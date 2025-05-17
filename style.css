@@ -23,9 +23,24 @@ body {
   font-family: 'Segoe UI', Arial, sans-serif;
   color: var(--text-color);
   line-height: 1.6;
+  margin: 0;
+  padding: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+header {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Navigation */
@@ -142,11 +157,40 @@ button {
 #map {
   position: absolute;
   top: 0;
-  bottom: 0;
   left: 0;
-  right: 0;
   width: 100%;
   height: 100%;
+}
+
+.controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.action-button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.action-button:hover {
+  background: #45a049;
 }
 
 .map-overlay {

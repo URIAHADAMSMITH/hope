@@ -594,8 +594,7 @@ async function initializeApp() {
 
     // Check if Mapbox GL JS is supported
     if (!mapboxgl.supported()) {
-      alert('Your browser does not support Mapbox GL JS. Please try a different browser.');
-      return;
+      throw new Error('Your browser does not support Mapbox GL JS. Please try a different browser.');
     }
 
     // Create the map
@@ -609,8 +608,16 @@ async function initializeApp() {
       renderWorldCopies: false
     });
 
+    // Wait for map to load
+    await new Promise((resolve, reject) => {
+      map.on('load', resolve);
+      map.on('error', reject);
+    });
+
+    console.log('Map loaded successfully');
+
     // Add navigation controls
-    map.addControl(new mapboxgl.NavigationControl());
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     // Add scale control
     map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
@@ -658,12 +665,6 @@ async function initializeApp() {
       updateLocationFromGeocoder(result);
     });
 
-    // Wait for map to load before adding layers
-    map.on('load', () => {
-      console.log('Map loaded successfully');
-      initializeMapLayers();
-    });
-
     // Update location on map move with debouncing
     map.on('moveend', () => {
       debouncedUpdateLocation();
@@ -689,11 +690,12 @@ async function initializeApp() {
     // Setup issue creation (after map is initialized)
     setupIssueCreation();
 
-    // ... rest of initialization code ...
+    // Load initial issues
+    await loadLocationIssues();
+
   } catch (error) {
-    console.error('Error in initialization:', error);
-    showToast('Error initializing application', 'error');
-    throw error; // Re-throw to be caught by the DOMContentLoaded handler
+    console.error('Error initializing application:', error);
+    showToast('Error initializing application: ' + error.message, 'error');
   }
 }
 
