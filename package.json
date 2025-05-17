@@ -1,0 +1,25 @@
+{
+  "name": "earth",
+  "version": "1.0.0",
+  "description": "A comprehensive platform for global democratic participation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.4.1",
+    "@supabase/supabase-js": "^2.39.5"
+  },
+  "engines": {
+    "node": "16.x"
+  },
+  "keywords": [
+    "democracy",
+    "voting",
+    "global",
+    "participation"
+  ],
+  "author": "Earth Team",
+  "license": "MIT"
+} 
