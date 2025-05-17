@@ -13,25 +13,15 @@
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="apple-touch-icon" href="/assets/icon-192.png">
     
-    <!-- Preload critical assets -->
-    <link rel="preload" href="/js/app.js" as="script">
-    <link rel="preload" href="/css/style.css" as="style">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/webfonts/fa-solid-900.woff2" as="font" crossorigin>
-    
-    <!-- Mapbox -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" rel="stylesheet">
-    
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5"></script>
+    <!-- App styles -->
+    <link href="/css/style.css" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
-    <!-- App styles -->
-    <link href="/css/style.css" rel="stylesheet">
+    <!-- Mapbox -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" rel="stylesheet">
 </head>
 <body>
     <!-- App header -->
@@ -85,7 +75,7 @@
     </main>
     
     <!-- Loading overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
+    <div id="loading-overlay" class="loading-overlay">
         <div class="loader"></div>
     </div>
     
@@ -108,6 +98,19 @@
         You are offline
     </div>
     
+    <!-- Error logging -->
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
+            return false;
+        };
+    </script>
+    
+    <!-- External dependencies -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5"></script>
+    
     <!-- App scripts -->
     <script src="/js/config.js"></script>
     <script src="/js/utils.js"></script>
@@ -117,7 +120,7 @@
     <script src="/js/issues.js"></script>
     <script src="/js/app.js"></script>
     
-    <!-- PWA install prompt -->
+    <!-- Templates -->
     <template id="install-prompt">
         <div class="install-prompt">
             <div class="prompt-content">
@@ -132,7 +135,6 @@
         </div>
     </template>
     
-    <!-- Keyboard shortcuts help -->
     <template id="shortcuts-help">
         <div class="shortcuts-help">
             <div class="help-content">
