@@ -23,7 +23,8 @@ app.use(helmet({
         "'unsafe-eval'",
         "api.mapbox.com",
         "cdn.jsdelivr.net",
-        "*.supabase.co"
+        "*.supabase.co",
+        "cdnjs.cloudflare.com"
       ],
       styleSrc: [
         "'self'",
@@ -34,6 +35,7 @@ app.use(helmet({
       imgSrc: [
         "'self'",
         "data:",
+        "blob:",
         "api.mapbox.com",
         "*.supabase.co",
         process.env.CORS_ORIGIN
@@ -41,15 +43,18 @@ app.use(helmet({
       connectSrc: [
         "'self'",
         "api.mapbox.com",
+        "events.mapbox.com",
         process.env.SUPABASE_URL,
         "wss://*.supabase.co"
       ],
       fontSrc: ["'self'", "cdnjs.cloudflare.com"],
       objectSrc: ["'none'"],
-      mediaSrc: ["'none'"],
-      frameSrc: ["'none'"]
+      mediaSrc: ["'self'"],
+      frameSrc: ["'self'"]
     }
-  }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
 }));
 
 // Rate limiting

@@ -9,10 +9,19 @@ const app = {
       // Initialize network status monitoring
       utils.network.init();
       
+      // Register service worker first
+      await this.registerServiceWorker();
+      
       // Load configuration
       const configLoaded = await loadConfig();
       if (!configLoaded) {
         throw new Error('Failed to load configuration');
+      }
+
+      // Initialize map after config is loaded
+      const mapInitialized = await map.initialize();
+      if (!mapInitialized) {
+        throw new Error('Failed to initialize map');
       }
       
       // Initialize authentication
@@ -21,13 +30,7 @@ const app = {
         throw new Error('Failed to initialize authentication');
       }
       
-      // Initialize map
-      const mapInitialized = await map.initialize();
-      if (!mapInitialized) {
-        throw new Error('Failed to initialize map');
-      }
-      
-      // Initialize issues
+      // Initialize issues last
       const issuesInitialized = await issues.initialize();
       if (!issuesInitialized) {
         throw new Error('Failed to initialize issues');
@@ -47,6 +50,50 @@ const app = {
       utils.loader.hide();
       return false;
     }
+  },
+  
+  // Register service worker
+  async registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        // Unregister any existing service workers
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+        }
+
+        // Clear all caches
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+
+        // Register new service worker
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('ServiceWorker registration successful');
+        
+        // Handle updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              utils.toast.show(
+                'A new version is available! Click to update.',
+                'info',
+                true,
+                () => window.location.reload()
+              );
+            }
+          });
+        });
+
+        return true;
+      } catch (error) {
+        console.error('ServiceWorker registration failed:', error);
+        return false;
+      }
+    }
+    return true;
   },
   
   // Set up keyboard shortcuts
@@ -147,33 +194,6 @@ const app = {
   
   // Set up Progressive Web App support
   setupPWA() {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('ServiceWorker registration successful');
-          
-          // Handle updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                utils.toast.show(
-                  'A new version is available! Click to update.',
-                  'info',
-                  true,
-                  () => window.location.reload()
-                );
-              }
-            });
-          });
-        } catch (error) {
-          console.error('ServiceWorker registration failed:', error);
-        }
-      });
-    }
-    
     // Handle "Add to Home Screen" event
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();

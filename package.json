@@ -35,6 +35,10 @@
   "engines": {
     "node": "16.x"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/URIAHADAMSMITH/hope.git"
+  },
   "keywords": [
     "democracy",
     "voting",
