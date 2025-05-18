@@ -1,0 +1,21 @@
+{
+  "install": "npm install",
+  "start": "node server-simple.js",
+  "watch": {
+    "ignore": [
+      "node_modules",
+      ".git",
+      ".data"
+    ],
+    "install": {
+      "include": [
+        "^package\\.json$"
+      ]
+    },
+    "restart": {
+      "include": [
+        "^server-simple\\.js$"
+      ]
+    }
+  }
+} 
