@@ -45,202 +45,183 @@ class Cache {
 window.issueCache = new Cache();
 window.locationCache = new Cache();
 
-// Debounce function
-function debounce(func, wait = CONFIG.UI.DEBOUNCE_DELAY) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-// Throttle function
-function throttle(func, limit = CONFIG.UI.THROTTLE_DELAY) {
-  let inThrottle;
-  return function(...args) {
-    if (!inThrottle) {
-      func.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-}
-
-// Toast notifications
-const toast = {
-  container: document.getElementById('toast-container'),
-  
-  show(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <div class="toast-content">
-        <i class="fas ${this.getIcon(type)}"></i>
-        <span>${message}</span>
-      </div>
-    `;
-    
-    this.container.appendChild(toast);
-    
-    // Animate in
-    requestAnimationFrame(() => {
-      toast.classList.add('show');
-    });
-    
-    // Remove after delay
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), CONFIG.UI.ANIMATION_DURATION);
-    }, CONFIG.UI.TOAST_DURATION);
-  },
-  
-  getIcon(type) {
-    const icons = {
-      success: 'fa-check-circle',
-      error: 'fa-times-circle',
-      warning: 'fa-exclamation-triangle',
-      info: 'fa-info-circle'
-    };
-    return icons[type] || icons.info;
-  }
-};
-
-// Loading indicator
-const loader = {
-  overlay: document.getElementById('loading-overlay'),
-  count: 0,
-  
-  show() {
-    this.count++;
-    if (this.count === 1) {
-      this.overlay.classList.remove('hidden');
+// Utility functions
+const utils = {
+  // Logger utility
+  logger: {
+    error: (error, context = '') => {
+      console.error(`[Earth Error] ${context}:`, error);
+      // You could also send errors to a monitoring service here
+    },
+    info: (message, data = '') => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.info(`[Earth Info] ${message}:`, data);
+      }
+    },
+    warn: (message, data = '') => {
+      console.warn(`[Earth Warning] ${message}:`, data);
     }
   },
-  
-  hide() {
-    this.count = Math.max(0, this.count - 1);
-    if (this.count === 0) {
-      this.overlay.classList.add('hidden');
+
+  // Loading indicator
+  loader: {
+    count: 0,
+    show: () => {
+      const overlay = document.getElementById('loading-overlay');
+      utils.loader.count++;
+      if (utils.loader.count === 1) {
+        overlay.classList.remove('hidden');
+      }
+    },
+    hide: () => {
+      const overlay = document.getElementById('loading-overlay');
+      utils.loader.count = Math.max(0, utils.loader.count - 1);
+      if (utils.loader.count === 0) {
+        overlay.classList.add('hidden');
+      }
+    },
+    reset: () => {
+      const overlay = document.getElementById('loading-overlay');
+      utils.loader.count = 0;
+      overlay.classList.add('hidden');
     }
   },
-  
-  reset() {
-    this.count = 0;
-    this.overlay.classList.add('hidden');
-  }
-};
 
-// Error boundary
-const errorBoundary = {
-  container: document.getElementById('error-boundary'),
-  messageElement: document.getElementById('error-message'),
-  
-  show(error) {
-    this.messageElement.textContent = error.message || 'An unexpected error occurred';
-    this.container.classList.remove('hidden');
+  // Toast notifications
+  toast: {
+    show: (message, type = 'info', persistent = false, onClick = null) => {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <div class="toast-content">
+          <i class="fas ${utils.toast.getIcon(type)}"></i>
+          <span>${message}</span>
+        </div>
+      `;
+
+      if (onClick) {
+        toast.style.cursor = 'pointer';
+        toast.addEventListener('click', onClick);
+      }
+
+      container.appendChild(toast);
+
+      if (!persistent) {
+        setTimeout(() => {
+          toast.classList.add('fade-out');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+    },
+    getIcon: (type) => {
+      const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+      return icons[type] || icons.info;
+    }
   },
-  
-  hide() {
-    this.container.classList.add('hidden');
-  }
-};
 
-// Date formatting
-const dateUtils = {
-  format(date) {
-    return new Intl.DateTimeFormat('default', {
+  // Error boundary
+  errorBoundary: {
+    show: (error) => {
+      utils.logger.error(error, 'Error Boundary');
+      const boundary = document.getElementById('error-boundary');
+      const message = document.getElementById('error-message');
+      boundary.classList.remove('hidden');
+      message.textContent = error.message || 'An unexpected error occurred';
+    },
+    hide: () => {
+      const boundary = document.getElementById('error-boundary');
+      boundary.classList.add('hidden');
+    }
+  },
+
+  // Network status
+  network: {
+    isOnline: navigator.onLine,
+    init: () => {
+      const updateOnlineStatus = () => {
+        const indicator = document.getElementById('offline-indicator');
+        if (navigator.onLine) {
+          indicator.classList.add('hidden');
+          utils.toast.show('You are back online!', 'success');
+        } else {
+          indicator.classList.remove('hidden');
+          utils.toast.show('You are offline. Some features may be limited.', 'warning', true);
+        }
+      };
+
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+      updateOnlineStatus();
+    }
+  },
+
+  // Form validation
+  validate: {
+    required: (value) => {
+      return value && value.trim().length > 0;
+    },
+    email: (email) => {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    },
+    length: (value, min, max) => {
+      const length = value.trim().length;
+      return length >= min && length <= max;
+    }
+  },
+
+  // Security
+  security: {
+    sanitizeInput: (input) => {
+      const div = document.createElement('div');
+      div.textContent = input;
+      return div.innerHTML;
+    },
+    validateOrigin: () => {
+      return window.location.origin === 'https://voteearth.glitch.me';
+    }
+  },
+
+  // Date formatting
+  formatDate: (date) => {
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric'
+      hour: '2-digit',
+      minute: '2-digit'
     }).format(new Date(date));
   },
-  
-  timeAgo(date) {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + ' years ago';
-    
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + ' months ago';
-    
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + ' days ago';
-    
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + ' hours ago';
-    
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + ' minutes ago';
-    
-    return 'just now';
-  }
-};
 
-// Form validation
-const validation = {
-  password(value) {
-    return {
-      isValid: CONFIG.VALIDATION.PASSWORD_REGEX.test(value),
-      requirements: CONFIG.VALIDATION.PASSWORD_REQUIREMENTS.map(req => ({
-        text: req,
-        met: this.checkRequirement(value, req)
-      }))
+  // Helper functions
+  debounce: (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
     };
   },
-  
-  checkRequirement(password, requirement) {
-    switch (requirement) {
-      case 'At least 8 characters':
-        return password.length >= 8;
-      case 'At least one letter':
-        return /[A-Za-z]/.test(password);
-      case 'At least one number':
-        return /\d/.test(password);
-      case 'At least one special character':
-        return /[@$!%*#?&]/.test(password);
-      default:
-        return false;
-    }
-  },
-  
-  email(value) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value);
-  }
-};
 
-// Network status
-const network = {
-  isOnline: navigator.onLine,
-  
-  init() {
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-      toast.show('Back online', 'success');
-    });
-    
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-      toast.show('No internet connection', 'warning');
-    });
+  throttle: (func, limit) => {
+    let inThrottle;
+    return function executedFunction(...args) {
+      if (!inThrottle) {
+        func(...args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
   }
 };
 
 // Export utilities
-window.utils = {
-  debounce,
-  throttle,
-  toast,
-  loader,
-  errorBoundary,
-  dateUtils,
-  validation,
-  network
-}; 
+window.utils = utils; 
