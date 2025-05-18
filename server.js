@@ -9,16 +9,19 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware
+// Trust proxy - required for rate limiting behind reverse proxies like on Glitch
+app.set('trust proxy', 1);
+
+// Security middleware with relaxed CSP for Glitch
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'api.mapbox.com', 'cdn.jsdelivr.net'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'api.mapbox.com', 'cdnjs.cloudflare.com'],
-      imgSrc: ["'self'", 'data:', 'api.mapbox.com'],
-      connectSrc: ["'self'", 'api.mapbox.com', process.env.SUPABASE_URL],
-      fontSrc: ["'self'", 'cdnjs.cloudflare.com'],
+      defaultSrc: ["'self'", "*.glitch.me"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "api.mapbox.com", "cdn.jsdelivr.net", "*.supabase.co"],
+      styleSrc: ["'self'", "'unsafe-inline'", "api.mapbox.com", "cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "api.mapbox.com", "*.supabase.co", "*.glitch.me"],
+      connectSrc: ["'self'", "api.mapbox.com", "*.supabase.co", "wss://*.supabase.co"],
+      fontSrc: ["'self'", "cdnjs.cloudflare.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'none'"],
       frameSrc: ["'none'"]
@@ -34,11 +37,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Enable CORS
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 
 // Compression
 app.use(compression());
@@ -60,17 +59,17 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+// Serve index.html for all routes (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
-});
-
-// Handle 404
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
 });
 
 // Start server
