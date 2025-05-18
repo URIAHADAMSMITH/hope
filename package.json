@@ -4,11 +4,12 @@
   "description": "Earth - Global Voice for Change",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "bash start.sh",
     "dev": "nodemon server.js",
     "build": "webpack --mode production",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "glitch": "bash start.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.5",
