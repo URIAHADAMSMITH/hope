@@ -7,20 +7,48 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 
+// Check if running on Glitch
+const isGlitch = !!process.env.PROJECT_DOMAIN;
+if (isGlitch) {
+  console.log(`Starting on Glitch (${process.env.PROJECT_DOMAIN})`);
+  
+  // Optimize memory usage
+  if (typeof global.gc === 'function') {
+    // Force garbage collection to free up memory
+    setInterval(() => {
+      try {
+        global.gc();
+        console.log('Garbage collection completed');
+      } catch (e) {
+        console.error('Error during garbage collection:', e);
+      }
+    }, 30000); // Every 30 seconds
+  }
+}
+
 // Check if .env file exists, if not create it with defaults
 const envFile = path.join(__dirname, '.env');
 if (!fs.existsSync(envFile)) {
   console.log('No .env file found, creating with default values...');
-  const defaultEnv = `NODE_ENV=development
-PORT=3001
-CORS_ORIGIN=http://localhost:3001
-MAPBOX_TOKEN=
-SUPABASE_URL=
-SUPABASE_ANON_KEY=`;
+  const defaultEnv = `NODE_ENV=production
+PORT=${process.env.PORT || 3001}
+CORS_ORIGIN=${isGlitch ? `https://${process.env.PROJECT_DOMAIN}.glitch.me` : 'http://localhost:3001'}
+MAPBOX_TOKEN=${process.env.MAPBOX_TOKEN || ''}
+SUPABASE_URL=${process.env.SUPABASE_URL || ''}
+SUPABASE_ANON_KEY=${process.env.SUPABASE_ANON_KEY || ''}`;
 
   fs.writeFileSync(envFile, defaultEnv);
   console.log('.env file created. Please edit it to add your API keys.');
-  console.log('Run node create-env-file.js to set up your environment properly.');
+}
+
+// Glitch-specific optimizations
+if (isGlitch) {
+  console.log('Applying Glitch-specific optimizations...');
+  
+  // Keep alive ping to prevent idle timeout
+  setInterval(() => {
+    console.log('Ping to keep alive');
+  }, 280000); // 4.7 minutes
 }
 
 // Performance monitoring
@@ -69,14 +97,22 @@ app.use(helmet({
         "api.mapbox.com",
         "cdn.jsdelivr.net",
         "*.supabase.co",
-        "cdnjs.cloudflare.com"
-      ],
+        "cdnjs.cloudflare.com",
+        // Glitch-specific
+        isGlitch ? "*.glitch.me" : null,
+        isGlitch ? "cdn.glitch.global" : null,
+        isGlitch ? "cdn.glitch.me" : null
+      ].filter(Boolean),
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
         "api.mapbox.com",
-        "cdnjs.cloudflare.com"
-      ],
+        "cdnjs.cloudflare.com",
+        // Glitch-specific
+        isGlitch ? "*.glitch.me" : null,
+        isGlitch ? "cdn.glitch.global" : null,
+        isGlitch ? "cdn.glitch.me" : null
+      ].filter(Boolean),
       imgSrc: [
         "'self'",
         "data:",
@@ -84,15 +120,22 @@ app.use(helmet({
         "api.mapbox.com",
         "*.supabase.co",
         process.env.CORS_ORIGIN,
-        "*.mapbox.com"
-      ],
+        "*.mapbox.com",
+        // Glitch-specific
+        isGlitch ? "*.glitch.me" : null,
+        isGlitch ? "cdn.glitch.global" : null,
+        isGlitch ? "cdn.glitch.me" : null
+      ].filter(Boolean),
       connectSrc: [
         "'self'",
         "api.mapbox.com",
         "events.mapbox.com",
         process.env.SUPABASE_URL,
-        "wss://*.supabase.co"
-      ]
+        "wss://*.supabase.co",
+        // Glitch-specific
+        isGlitch ? "*.glitch.me" : null,
+        isGlitch ? "wss://*.glitch.me" : null
+      ].filter(Boolean)
     }
   },
   crossOriginEmbedderPolicy: false,
@@ -209,6 +252,29 @@ app.get('/api/config', (req, res) => {
     res.status(500).json({ error: 'Failed to get configuration' });
   }
 });
+
+// Glitch-specific routes
+if (isGlitch) {
+  // Quick restart route (password protected)
+  app.get('/restart', (req, res) => {
+    if (req.query.key === process.env.RESTART_KEY) {
+      res.send('Restarting server...');
+      setTimeout(() => process.exit(0), 500);
+    } else {
+      res.status(403).send('Not authorized');
+    }
+  });
+  
+  // Status route for Glitch
+  app.get('/glitch-status', (req, res) => {
+    res.json({
+      status: 'running',
+      uptime: Math.floor(process.uptime()),
+      started: new Date(Date.now() - (process.uptime() * 1000)).toISOString(),
+      env: process.env.NODE_ENV
+    });
+  });
+}
 
 // Performance metrics endpoint
 app.get('/metrics', (req, res) => {

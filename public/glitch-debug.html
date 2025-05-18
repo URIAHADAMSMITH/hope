@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glitch Debug - Earth App</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 { color: #4CAF50; margin-bottom: 10px; }
+        h2 { margin-top: 30px; color: #2196F3; }
+        pre { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow: auto;
+            border-left: 4px solid #4CAF50;
+        }
+        button { 
+            padding: 10px 15px; 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover { background: #45a049; }
+        .error { color: #F44336; }
+        .success { color: #4CAF50; }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Earth App - Glitch Debug</h1>
+    <p>Use this page to verify your Glitch deployment is working correctly.</p>
+
+    <div class="card">
+        <h2>1. Server Status</h2>
+        <button id="checkStatus">Check Server Status</button>
+        <div id="statusResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. API Configuration</h2>
+        <button id="checkConfig">Test API Config</button>
+        <div id="configResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. Environment Variables</h2>
+        <button id="checkEnv">Check Environment</button>
+        <div id="envResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>4. Restart Server</h2>
+        <input type="password" id="restartKey" placeholder="Restart Key">
+        <button id="restartServer">Restart Server</button>
+        <div id="restartResult"></div>
+    </div>
+
+    <script>
+        // Helper for fetch requests
+        async function fetchEndpoint(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return { success: true, status: response.status, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Helper for displaying results
+        function displayResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            if (result.success) {
+                element.innerHTML = `
+                    <p class="success">Success! Status: ${result.status}</p>
+                    <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                `;
+            } else {
+                element.innerHTML = `
+                    <p class="error">Error: ${result.error}</p>
+                `;
+            }
+        }
+
+        // Server status check
+        document.getElementById('checkStatus').addEventListener('click', async () => {
+            const result = await fetchEndpoint('/glitch-status');
+            displayResult('statusResult', result);
+        });
+
+        // API config check
+        document.getElementById('checkConfig').addEventListener('click', async () => {
+            const result = await fetchEndpoint('/api/config');
+            displayResult('configResult', result);
+        });
+
+        // Environment check
+        document.getElementById('checkEnv').addEventListener('click', async () => {
+            const result = await fetchEndpoint('/health');
+            displayResult('envResult', result);
+        });
+
+        // Restart server
+        document.getElementById('restartServer').addEventListener('click', async () => {
+            const key = document.getElementById('restartKey').value;
+            if (!key) {
+                document.getElementById('restartResult').innerHTML = `
+                    <p class="error">Please enter the restart key</p>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/restart?key=${encodeURIComponent(key)}`);
+                const text = await response.text();
+                
+                if (response.ok) {
+                    document.getElementById('restartResult').innerHTML = `
+                        <p class="success">Server is restarting. Please wait a moment...</p>
+                    `;
+                    
+                    // Check if server is back up after a delay
+                    setTimeout(async () => {
+                        try {
+                            await fetch('/health');
+                            document.getElementById('restartResult').innerHTML += `
+                                <p class="success">Server is back online!</p>
+                            `;
+                        } catch (e) {
+                            document.getElementById('restartResult').innerHTML += `
+                                <p>Server still restarting, please wait...</p>
+                            `;
+                        }
+                    }, 5000);
+                } else {
+                    document.getElementById('restartResult').innerHTML = `
+                        <p class="error">Error: ${text}</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('restartResult').innerHTML = `
+                    <p class="error">Error: ${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 
