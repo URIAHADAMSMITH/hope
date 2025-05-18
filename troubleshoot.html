@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Troubleshooter</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow: auto; }
+        button { padding: 10px 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>API Troubleshooter</h1>
+    
+    <h2>1. Test API Configuration Endpoint</h2>
+    <button id="testConfig">Test /api/config</button>
+    <div id="configResult"></div>
+    
+    <h2>2. Test Environment Variables</h2>
+    <button id="testEnv">Test /debug-env</button>
+    <div id="envResult"></div>
+    
+    <script>
+        document.getElementById('testConfig').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('configResult');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <p class="success">Success! Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message}</p>
+                `;
+            }
+        });
+        
+        document.getElementById('testEnv').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('envResult');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const response = await fetch('/debug-env');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <p class="success">Success! Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 
