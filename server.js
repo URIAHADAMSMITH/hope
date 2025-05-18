@@ -32,7 +32,10 @@ app.use(helmet({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true
 });
 app.use('/api/', limiter);
 
@@ -46,8 +49,9 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files
+// Serve static files - try both /public and root directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // API routes
 app.get('/api/config', (req, res) => {
@@ -61,12 +65,23 @@ app.get('/api/config', (req, res) => {
 
 // Serve index.html for all routes (SPA support)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  // Try both locations for index.html
+  const publicPath = path.join(__dirname, 'public', 'index.html');
+  const rootPath = path.join(__dirname, 'index.html');
+  
+  if (require('fs').existsSync(publicPath)) {
+    res.sendFile(publicPath);
+  } else if (require('fs').existsSync(rootPath)) {
+    res.sendFile(rootPath);
+  } else {
+    res.status(404).send('index.html not found in either public/ or root directory');
+  }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error:', err.message);
+  console.error('Stack:', err.stack);
   res.status(500).json({
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
@@ -75,4 +90,6 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Public directory: ${path.join(__dirname, 'public')}`);
+  console.log(`Root directory: ${__dirname}`);
 }); 
