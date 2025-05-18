@@ -16,11 +16,34 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'", "*.glitch.me"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "api.mapbox.com", "cdn.jsdelivr.net", "*.supabase.co"],
-      styleSrc: ["'self'", "'unsafe-inline'", "api.mapbox.com", "cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "api.mapbox.com", "*.supabase.co", "*.glitch.me"],
-      connectSrc: ["'self'", "api.mapbox.com", "*.supabase.co", "wss://*.supabase.co"],
+      defaultSrc: ["'self'", process.env.CORS_ORIGIN],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        "api.mapbox.com",
+        "cdn.jsdelivr.net",
+        "*.supabase.co"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "api.mapbox.com",
+        "cdnjs.cloudflare.com"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "api.mapbox.com",
+        "*.supabase.co",
+        process.env.CORS_ORIGIN
+      ],
+      connectSrc: [
+        "'self'",
+        "api.mapbox.com",
+        process.env.SUPABASE_URL,
+        "wss://*.supabase.co"
+      ],
       fontSrc: ["'self'", "cdnjs.cloudflare.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'none'"],
@@ -39,8 +62,13 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Enable CORS
-app.use(cors());
+// Enable CORS with specific origin
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Compression
 app.use(compression());
@@ -60,6 +88,16 @@ app.get('/api/config', (req, res) => {
     mapboxToken: process.env.MAPBOX_TOKEN,
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV,
+    cors_origin: process.env.CORS_ORIGIN
   });
 });
 
@@ -90,6 +128,8 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`CORS Origin: ${process.env.CORS_ORIGIN}`);
   console.log(`Public directory: ${path.join(__dirname, 'public')}`);
   console.log(`Root directory: ${__dirname}`);
 }); 
