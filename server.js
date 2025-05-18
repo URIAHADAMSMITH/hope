@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log('DEBUG ENV:', process.env);
 const express = require('express');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -7,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Trust proxy - required for rate limiting behind reverse proxies like on Glitch
 app.set('trust proxy', 1);
@@ -21,10 +22,12 @@ app.use(helmet({
         "'self'",
         "'unsafe-inline'",
         "'unsafe-eval'",
+        "blob:",
         "api.mapbox.com",
         "cdn.jsdelivr.net",
         "*.supabase.co",
-        "cdnjs.cloudflare.com"
+        "cdnjs.cloudflare.com",
+        "raw.githubusercontent.com"
       ],
       styleSrc: [
         "'self'",
@@ -38,23 +41,29 @@ app.use(helmet({
         "blob:",
         "api.mapbox.com",
         "*.supabase.co",
-        process.env.CORS_ORIGIN
+        "raw.githubusercontent.com",
+        process.env.CORS_ORIGIN,
+        "*.mapbox.com"
       ],
       connectSrc: [
         "'self'",
         "api.mapbox.com",
         "events.mapbox.com",
+        "*.mapbox.com",
         process.env.SUPABASE_URL,
-        "wss://*.supabase.co"
+        "wss://*.supabase.co",
+        "raw.githubusercontent.com"
       ],
       fontSrc: ["'self'", "cdnjs.cloudflare.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'self'"]
+      frameSrc: ["'self'", process.env.CORS_ORIGIN],
+      frameAncestors: ["'self'", process.env.CORS_ORIGIN],
+      workerSrc: ["'self'", "blob:"]
     }
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: false
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Rate limiting
@@ -88,12 +97,13 @@ app.use(express.static(__dirname));
 
 // API routes
 app.get('/api/config', (req, res) => {
-  // Only send necessary frontend configuration
-  res.json({
+  const config = {
     mapboxToken: process.env.MAPBOX_TOKEN,
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY
-  });
+  };
+  console.log('API CONFIG:', config);
+  res.json(config);
 });
 
 // Health check endpoint
@@ -103,6 +113,19 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
     cors_origin: process.env.CORS_ORIGIN
+  });
+});
+
+// Debug route - remove in production
+app.get('/debug-env', (req, res) => {
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+    CORS_ORIGIN: process.env.CORS_ORIGIN,
+    // Only show the fact that these exist, not their values for security
+    MAPBOX_TOKEN: process.env.MAPBOX_TOKEN ? "defined" : "undefined",
+    SUPABASE_URL: process.env.SUPABASE_URL ? "defined" : "undefined",
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? "defined" : "undefined"
   });
 });
 
@@ -132,7 +155,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`CORS Origin: ${process.env.CORS_ORIGIN}`);
   console.log(`Public directory: ${path.join(__dirname, 'public')}`);
